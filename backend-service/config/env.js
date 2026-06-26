@@ -8,4 +8,5 @@ export const { PORT,
        JWT_SECRET,
         JWT_EXPIRES_IN,
          GROQ_API_KEY,
-          TAVILY_API_KEY } = process.env;
+          TAVILY_API_KEY,
+        FRONTEND_URL } = process.env;
