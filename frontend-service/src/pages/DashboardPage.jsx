@@ -2,35 +2,38 @@ import { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { clearUser } from '../store/slices/authSlice'
+import { setProjects, addProject, removeProject, setLoading, setError } from '../store/slices/projectsSlice'
 import api from '../api/axiosInstance'
+import folderImg from '../assets/folder.png'
 
 const DashboardPage = () => {
-  const [projects, setProjects] = useState([])
-  const [loading, setLoading] = useState(true)
+  // UI-only local state
   const [showModal, setShowModal] = useState(false)
   const [deleting, setDeleting] = useState(null)
   const [form, setForm] = useState({ name: '', repoUrl: '', githubToken: '' })
   const [formLoading, setFormLoading] = useState(false)
   const [formError, setFormError] = useState('')
 
+  // Redux state
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const user = useSelector((state) => state.auth.user)
+  const { projects, loading } = useSelector((state) => state.projects)
 
-  // Load projects on mount
   useEffect(() => {
     fetchProjects()
   }, [])
 
   const fetchProjects = async () => {
     try {
-      setLoading(true)
+      dispatch(setLoading(true))
       const res = await api.get('/projects')
-      setProjects(res.data.data)
+      dispatch(setProjects(res.data.data))
     } catch (err) {
+      dispatch(setError(err.message))
       console.error('Failed to load projects', err)
     } finally {
-      setLoading(false)
+      dispatch(setLoading(false))
     }
   }
 
@@ -43,7 +46,7 @@ const DashboardPage = () => {
       setFormLoading(true)
       setFormError('')
       const res = await api.post('/projects', form)
-      setProjects((prev) => [res.data.data, ...prev])
+      dispatch(addProject(res.data.data))
       setForm({ name: '', repoUrl: '', githubToken: '' })
       setShowModal(false)
     } catch (err) {
@@ -54,11 +57,11 @@ const DashboardPage = () => {
   }
 
   const handleDelete = async (e, projectId) => {
-    e.stopPropagation() // prevent card click when deleting
+    e.stopPropagation()
     try {
       setDeleting(projectId)
       await api.delete(`/projects/${projectId}`)
-      setProjects((prev) => prev.filter((p) => p._id !== projectId))
+      dispatch(removeProject(projectId))
     } catch (err) {
       console.error('Failed to delete project', err)
     } finally {
@@ -94,7 +97,7 @@ const DashboardPage = () => {
           </span>
           <button
             onClick={handleLogout}
-            className="text-sm text-gray-600 hover:text-gray-900 font-medium"
+            className="bg-blue-600 text-sm border border-gray-200 hover:border-gray-300 text-white hover:bg-blue-700 font-medium px-4 py-2 rounded-lg transition-colors"
           >
             Logout
           </button>
@@ -147,11 +150,10 @@ const DashboardPage = () => {
                 onClick={() => navigate(`/workspace/${project._id}`)}
                 className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-200 transition-all cursor-pointer"
               >
-                {/* Card top */}
                 <div className="flex items-start justify-between mb-4">
                   <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
-                    <span className="text-lg">📁</span>
-                  </div>
+  <img src={folderImg} alt="folder" className="w-6 h-6 object-contain" />
+</div>
                   <button
                     onClick={(e) => handleDelete(e, project._id)}
                     disabled={deleting === project._id}
@@ -161,7 +163,6 @@ const DashboardPage = () => {
                   </button>
                 </div>
 
-                {/* Card content */}
                 <h3 className="font-semibold text-gray-900 mb-1 truncate">
                   {project.name}
                 </h3>
@@ -169,7 +170,6 @@ const DashboardPage = () => {
                   {project.repoOwner}/{project.repoName}
                 </p>
 
-                {/* Footer */}
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-gray-400">
                     {new Date(project.createdAt).toLocaleDateString('en-US', {

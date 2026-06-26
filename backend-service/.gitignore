@@ -60,3 +60,10 @@ typings/
 
 # next.js build output
 .next
+node_modules
+.env.development.local
+.env.production.local
+.env.local
+.env
+test-tool.js
+test-mock.js
